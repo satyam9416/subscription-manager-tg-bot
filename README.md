@@ -9,6 +9,9 @@ A full-stack application that allows administrators to manage products and map t
 - User subscription system
 - Automatic user identification upon joining Telegram groups
 - Automatic removal of users when subscriptions expire
+- Flexible database configuration (local Docker or external cloud databases)
+- Configurable service ports
+- Docker Compose profiles for different deployment scenarios
 
 ## Tech Stack
 
@@ -52,29 +55,102 @@ tg-manager/
 
 ### Environment Variables
 
-Create a `.env` file in the project root with the following variables:
+Create a `.env` file in the project root. You can use the provided `env.example` file as a starting point:
+
+```bash
+cp env.example .env
+```
+
+Then edit the `.env` file with your configuration:
+
+#### Local Development (with Docker database)
 
 ```
-# Database
+# Database Configuration
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
 POSTGRES_DB=tg_manager
+POSTGRES_HOST=db
+POSTGRES_PORT=5432
 
-# Flask
-FLASK_APP=app
+# Application Configuration
+FLASK_APP=run.py
 FLASK_ENV=development
-SECRET_KEY=your_secret_key
+SECRET_KEY=your-secret-key-here
+TELEGRAM_BOT_TOKEN=your-telegram-bot-token
 
-# Telegram
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+# Port Configuration (optional)
+BACKEND_PORT=5000
+FRONTEND_PORT=3000
 ```
+
+#### External Database (Cloud/Third-party)
+
+```
+# External Database Configuration
+POSTGRES_HOST=your-db-host.amazonaws.com
+POSTGRES_PORT=5432
+POSTGRES_USER=your_username
+POSTGRES_PASSWORD=your_password
+POSTGRES_DB=your_database_name
+
+# Application Configuration
+FLASK_APP=run.py
+FLASK_ENV=development
+SECRET_KEY=your-secret-key-here
+TELEGRAM_BOT_TOKEN=your-telegram-bot-token
+
+# Port Configuration (optional)
+BACKEND_PORT=5000
+FRONTEND_PORT=3000
+```
+
+#### Environment Variables Reference
+
+| Variable             | Description                   | Default       | Required |
+| -------------------- | ----------------------------- | ------------- | -------- |
+| `POSTGRES_USER`      | Database username             | `postgres`    | Yes      |
+| `POSTGRES_PASSWORD`  | Database password             | `postgres`    | Yes      |
+| `POSTGRES_DB`        | Database name                 | `tg_manager`  | Yes      |
+| `POSTGRES_HOST`      | Database host                 | `db`          | Yes      |
+| `POSTGRES_PORT`      | Database port                 | `5432`        | Yes      |
+| `FLASK_APP`          | Flask application entry point | `run.py`      | Yes      |
+| `FLASK_ENV`          | Flask environment             | `development` | No       |
+| `SECRET_KEY`         | Flask secret key              | -             | Yes      |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot token            | -             | Yes      |
+| `BACKEND_PORT`       | Backend service port          | `5000`        | No       |
+| `FRONTEND_PORT`      | Frontend service port         | `3000`        | No       |
 
 ### Running the Application
 
 1. Clone the repository
-2. Create the `.env` file with the required environment variables
-3. Run `docker-compose up --build`
-4. Access the application at http://localhost:3000
+2. Create the `.env` file with the required environment variables:
+   ```bash
+   cp env.example .env
+   # Edit .env with your configuration
+   ```
+3. Run the application:
+
+   **With local Docker database:**
+
+   ```bash
+   docker-compose --profile local-db up --build
+   ```
+
+   **With external database:**
+
+   ```bash
+   docker-compose up --build
+   ```
+
+4. Access the application:
+   - Frontend: http://localhost:3000 (or your custom `FRONTEND_PORT`)
+   - Backend API: http://localhost:5000 (or your custom `BACKEND_PORT`)
+
+#### Docker Compose Profiles
+
+- `local-db`: Includes the local PostgreSQL database service
+- Default (no profile): Runs only backend and frontend services (for external database usage)
 
 ## API Documentation
 
