@@ -44,6 +44,15 @@ def create_app():
     app.register_blueprint(subscription_bp, url_prefix="/api")
     app.register_blueprint(telegram_bp, url_prefix="/api")
 
+    # Health check route
+    @app.route('/health')
+    def health_check():
+        return {'status': 'ok', 'message': 'Backend is running'}
+
+    @app.route('/')
+    def root():
+        return {'message': 'Telegram Bot Manager API', 'status': 'running'}
+
     # Initialize Telegram bot
     # with app.app_context():
     #     from app.bot import initialize_bot, USE_WEBHOOKS
@@ -72,10 +81,13 @@ def create_app():
     #                     loop.close()
     #             except Exception as e:
     #                 app.logger.error(f"Failed to set webhook: {e}")
-    from app.services.telegram import tg_bot
-
-    tg_bot.init_app(app)
-    tg_bot.start_bot()
+    from app.services.telegram import get_telegram_bot_service
+    
+    # Initialize Telegram bot service (singleton)
+    tg_bot = get_telegram_bot_service()
+    if tg_bot:
+        tg_bot.init_app(app)
+        tg_bot.start_bot()
 
     # Initialize scheduled tasks
     from app.tasks.subscription_tasks import init_scheduler

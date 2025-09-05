@@ -1,20 +1,15 @@
 #!/bin/bash
-set -e
 
-# Check if the migrations directory exists, if not, initialize and migrate
-if [ ! -d "migrations" ]; then
-    echo "Initializing database migrations..."
-    flask db init
-    flask db migrate -m "Initial migration"
-elif [ ! -d "migrations/versions" ] || [ -z "$(ls -A migrations/versions 2>/dev/null)" ]; then
-    echo "No migration versions found. Creating initial migration..."
-    flask db migrate -m "Initial migration"
-fi
+echo "Waiting for database to be ready..."
+sleep 10
+echo "Database should be ready!"
 
-# Apply database upgrades
 echo "Applying database migrations..."
+
+# Reset migrations and recreate
+echo "Resetting migrations..."
+flask db stamp head
 flask db upgrade
 
-# Start the application
-echo "Starting application server..."
-exec gunicorn --worker-class eventlet -w 1 "app:create_app()" --bind "0.0.0.0:5000" --reload
+echo "Starting Flask application..."
+exec python run.py

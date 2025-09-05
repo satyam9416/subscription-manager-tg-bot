@@ -3,7 +3,7 @@ from app import db
 from app.models import User, Product, TelegramGroup, Subscription
 from sqlalchemy.exc import SQLAlchemyError
 from app.bot.telegram_client import generate_invite_link
-from app.services.telegram import tg_bot
+from app.services.telegram import get_telegram_bot_service
 
 
 class SubscriptionService:
@@ -144,9 +144,13 @@ class SubscriptionService:
             import uuid
 
             invite_token = str(uuid.uuid4())[:32]
-            success, _, invite_link = tg_bot.create_invite_link(
-                product.telegram_group.telegram_group_id, invite_token
-            )
+            tg_bot = get_telegram_bot_service()
+            if tg_bot:
+                success, _, invite_link = tg_bot.create_invite_link(
+                    product.telegram_group.telegram_group_id, invite_token
+                )
+            else:
+                success, invite_link = False, None
 
             if not success or not invite_link:
                 db.session.rollback()
@@ -231,9 +235,11 @@ class SubscriptionService:
             if not subscription:
                 return None, "Subscription not found"
 
-            tg_bot.remove_user(
-                subscription.telegram_group.telegram_group_id, user.telegram_user_id
-            )
+            tg_bot = get_telegram_bot_service()
+            if tg_bot:
+                tg_bot.remove_user(
+                    subscription.telegram_group.telegram_group_id, user.telegram_user_id
+                )
 
             subscription.status = "cancelled"
 

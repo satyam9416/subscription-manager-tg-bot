@@ -425,6 +425,11 @@ class TelegramGroupBotService:
 
     def start_bot(self):
         """Start the bot in a separate thread"""
+        
+        # Prevent multiple instances
+        if self.running or (self.bot_thread and self.bot_thread.is_alive()):
+            logger.warning("🚫 Bot service is already running, skipping initialization")
+            return
 
         def run_bot():
             logger.info("🚀 Starting Telegram Bot Service...")
@@ -436,31 +441,57 @@ class TelegramGroupBotService:
             self.event_loop = loop
 
             try:
-                self.application.run_polling(allowed_updates=Update.ALL_TYPES)
+                # Initialize and start the application properly
+                async def start_polling():
+                    await self.application.initialize()
+                    await self.application.start()
+                    await self.application.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+                    # Keep the loop running
+                    await asyncio.Event().wait()
+                
+                loop.run_until_complete(start_polling())
             except Exception as e:
                 logger.error(f"Error running bot: {e}")
             finally:
                 self.running = False
                 self.event_loop = None
 
-        if not self.running:
-            self.bot_thread = threading.Thread(target=run_bot, daemon=True)
-            self.bot_thread.start()
-            logger.info("✅ Bot service started in background thread")
+        self.bot_thread = threading.Thread(target=run_bot, daemon=True)
+        self.bot_thread.start()
+        logger.info("✅ Bot service started in background thread")
 
     def stop_bot(self):
         """Stop the bot"""
         if self.running:
             self.running = False
-            if self.application.updater:
-                self.application.updater.stop()
-            logger.info("🛑 Bot service stopped")
+            if self.application and self.application.updater:
+                try:
+                    self.application.updater.stop()
+                    logger.info("🛑 Bot service stopped")
+                except Exception as e:
+                    logger.error(f"Error stopping bot updater: {e}")
 
-        if self.event_loop.is_running():
-            self.event_loop.call_soon_threadsafe(self.event_loop.stop)
-            logger.info("🛑 Bot event loop stopped")
+        if self.event_loop and self.event_loop.is_running():
+            try:
+                self.event_loop.call_soon_threadsafe(self.event_loop.stop)
+                logger.info("🛑 Bot event loop stopped")
+            except Exception as e:
+                logger.error(f"Error stopping bot event loop: {e}")
 
 
 import os
 
-tg_bot = TelegramGroupBotService(os.environ.get("TELEGRAM_BOT_TOKEN"))
+# Singleton instance
+_tg_bot_instance = None
+
+def get_telegram_bot_service():
+    """Get the singleton Telegram bot service instance"""
+    global _tg_bot_instance
+    if _tg_bot_instance is None:
+        bot_token = os.environ.get("TELEGRAM_BOT_TOKEN")
+        if bot_token:
+            _tg_bot_instance = TelegramGroupBotService(bot_token)
+    return _tg_bot_instance
+
+# Export the singleton getter
+tg_bot_service = get_telegram_bot_service

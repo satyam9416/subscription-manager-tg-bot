@@ -3,7 +3,7 @@ from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.services import SubscriptionService
 from app.bot.telegram_client import kick_user_from_group
-from app.services.telegram import tg_bot
+from app.services.telegram import get_telegram_bot_service
 
 # Configure logging
 logging.basicConfig(
@@ -34,10 +34,14 @@ def check_expired_subscriptions():
                 continue
 
             # Remove user from the Telegram group
-            success, message = tg_bot.remove_user(
-                subscription.telegram_group.telegram_group_id,
-                subscription.user.telegram_user_id,
-            )
+            tg_bot = get_telegram_bot_service()
+            if tg_bot:
+                success, message = tg_bot.remove_user(
+                    subscription.telegram_group.telegram_group_id,
+                    subscription.user.telegram_user_id,
+                )
+            else:
+                success, message = False, "Telegram bot service not available"
 
             if success:
                 logger.info(
