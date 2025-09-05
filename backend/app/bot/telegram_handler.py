@@ -136,16 +136,16 @@ def handle_chat_join_request(update):
                     logger.info(f"Successfully updated subscription for user {user_id}")
 
                     # Approve the join request
-                    from app.bot.telegram_client import get_bot
+                    from app.services.telegram import get_telegram_bot_service
                     import asyncio
 
-                    bot = get_bot()
-                    if bot:
+                    tg_bot_service = get_telegram_bot_service()
+                    if tg_bot_service and tg_bot_service.bot:
                         loop = asyncio.new_event_loop()
                         asyncio.set_event_loop(loop)
                         try:
                             loop.run_until_complete(
-                                bot.approve_chat_join_request(
+                                tg_bot_service.bot.approve_chat_join_request(
                                     chat_id=chat_id, user_id=user_id
                                 )
                             )

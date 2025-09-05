@@ -2,7 +2,7 @@ import os
 import logging
 from flask import Blueprint, request, jsonify
 from app.bot.telegram_handler import process_update
-from app.bot.telegram_client import get_bot
+from app.services.telegram import get_telegram_bot_service
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -17,7 +17,8 @@ def telegram_webhook(token):
         return jsonify({'message': 'Invalid token'}), 401
     
     # Check if we're using webhooks
-    from app.bot import USE_WEBHOOKS
+    import os
+    USE_WEBHOOKS = os.environ.get("USE_WEBHOOKS", "false").lower() == "true"
     if not USE_WEBHOOKS:
         logger.info("Webhook received but system is configured to use handlers instead")
         return jsonify({'message': 'System is using handlers, not webhooks'}), 200
@@ -35,28 +36,19 @@ def telegram_webhook(token):
 @telegram_bp.route('/telegram/webhook/test', methods=['GET'])
 def test_webhook():
     """Test endpoint to verify the webhook is working"""
-    bot = get_bot()
-    if not bot:
-        return jsonify({'message': 'Bot not initialized'}), 500
+    tg_bot = get_telegram_bot_service()
+    if not tg_bot:
+        return jsonify({'message': 'Bot service not initialized'}), 500
     
     try:
-        import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
-        try:
-            webhook_info = loop.run_until_complete(bot.get_webhook_info())
-            return jsonify({
-                'message': 'Webhook info retrieved successfully',
-                'webhook_url': webhook_info.url,
-                'has_custom_certificate': webhook_info.has_custom_certificate,
-                'pending_update_count': webhook_info.pending_update_count,
-                'last_error_date': webhook_info.last_error_date,
-                'last_error_message': webhook_info.last_error_message,
-                'max_connections': webhook_info.max_connections
-            }), 200
-        finally:
-            loop.close()
+        # Use the new service's bot instance
+        webhook_info = tg_bot._run_async_in_bot_loop(tg_bot.bot.get_webhook_info())
+        return jsonify({
+            'message': 'Webhook info retrieved successfully',
+            'webhook_url': webhook_info.url if webhook_info else None,
+            'bot_running': tg_bot.running,
+            'bot_token_prefix': tg_bot.bot_token[:10] + '***' if tg_bot.bot_token else None
+        }), 200
     except Exception as e:
         logger.error(f"Error getting webhook info: {e}")
         return jsonify({'message': f'Error getting webhook info: {str(e)}'}), 500

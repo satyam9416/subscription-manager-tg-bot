@@ -19,40 +19,10 @@ USE_WEBHOOKS = os.environ.get("USE_WEBHOOKS", "false").lower() == "true"
 
 
 def initialize_bot():
-    """Initialize the Telegram bot."""
-    global bot, application
-    token = os.environ.get("TELEGRAM_BOT_TOKEN")
-    if not token:
-        logger.error("TELEGRAM_BOT_TOKEN not found in environment variables")
-        return None
-
-    try:
-        application = ApplicationBuilder().token(token).build()
-        bot = application.bot
-        logger.info("Telegram bot initialized successfully")
-
-        # If using handlers instead of webhooks, set up the handlers
-        if not USE_WEBHOOKS:
-            from app.bot.telegram_handler import setup_handlers
-
-            setup_handlers(application)
-
-            # Start polling in a separate thread
-            import threading
-
-            threading.Thread(target=start_polling, daemon=True).start()
-
-            logger.info("Started polling for updates")
-        else:
-            logger.info("Using webhook mode for updates")
-
-        # Sync groups the bot is already a member of
-        sync_bot_groups()
-
-        return bot
-    except Exception as e:
-        logger.error(f"Failed to initialize Telegram bot: {e}")
-        return None
+    """Initialize the Telegram bot - DEPRECATED: Use TelegramGroupBotService instead."""
+    logger.warning("⚠️  initialize_bot() is deprecated. The new TelegramGroupBotService should be used instead.")
+    # Return None to prevent duplicate bot instances
+    return None
 
 
 def start_polling():
@@ -78,12 +48,12 @@ def start_polling():
 
 
 def get_bot():
-    """Get the bot instance, initializing it if necessary."""
-    global bot
-    if bot is None:
-        logger.info("Initializing Telegram bot")
-        bot = initialize_bot()
-    return bot
+    """Get the bot instance - DEPRECATED: Use TelegramGroupBotService instead."""
+    logger.warning("⚠️  get_bot() is deprecated. Use get_telegram_bot_service() instead.")
+    # Return the bot from the new service to avoid conflicts
+    from app.services.telegram import get_telegram_bot_service
+    tg_bot_service = get_telegram_bot_service()
+    return tg_bot_service.bot if tg_bot_service else None
 
 
 def generate_invite_link(chat_id, expires_at):

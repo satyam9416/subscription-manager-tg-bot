@@ -81,13 +81,22 @@ def create_app():
     #                     loop.close()
     #             except Exception as e:
     #                 app.logger.error(f"Failed to set webhook: {e}")
-    from app.services.telegram import get_telegram_bot_service
+    # Initialize Telegram bot service only in main process (not in Flask reloader)
+    import os
+    import logging
+    logger = logging.getLogger(__name__)
     
-    # Initialize Telegram bot service (singleton)
-    tg_bot = get_telegram_bot_service()
-    if tg_bot:
-        tg_bot.init_app(app)
-        tg_bot.start_bot()
+    if not os.environ.get('WERKZEUG_RUN_MAIN'):
+        # This is the reloader process, don't start the bot
+        logger.info("⚠️  Skipping bot initialization in Flask reloader process")
+    else:
+        # This is the main process, safe to start the bot
+        from app.services.telegram import get_telegram_bot_service
+        
+        tg_bot = get_telegram_bot_service()
+        if tg_bot:
+            tg_bot.init_app(app)
+            tg_bot.start_bot()
 
     # Initialize scheduled tasks
     from app.tasks.subscription_tasks import init_scheduler

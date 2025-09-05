@@ -23,11 +23,7 @@ services:
     volumes:
       - ./backend:/app
     ports:
-<<<<<<< HEAD
-      - "0.0.0.0:5000:5000"
-=======
       - "${BACKEND_PORT:-5000}:5000"
->>>>>>> ce9303c7613274543082536407d84042355acdd3
     environment:
       - FLASK_APP=run.py
       - FLASK_ENV=${FLASK_ENV:-development}
@@ -49,11 +45,7 @@ services:
       - ./frontend:/app
       - /app/node_modules
     ports:
-<<<<<<< HEAD
-      - "0.0.0.0:3001:80"
-=======
-      - "${FRONTEND_PORT:-3000}:80"
->>>>>>> ce9303c7613274543082536407d84042355acdd3
+      - "${FRONTEND_PORT:-3001}:80"
     depends_on:
       - backend
 
