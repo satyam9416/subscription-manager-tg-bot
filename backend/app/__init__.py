@@ -23,7 +23,7 @@ def create_app():
         "DATABASE_URL",
         f"postgresql://{os.environ.get('POSTGRES_USER', 'postgres')}:"
         f"{os.environ.get('POSTGRES_PASSWORD', 'postgres')}@"
-        f"{os.environ.get('POSTGRES_HOST', 'db')}:5432/"
+        f"{os.environ.get('POSTGRES_HOST', 'db')}:{os.environ.get('POSTGRES_PORT', '5432')}/"
         f"{os.environ.get('POSTGRES_DB', 'tg_manager')}",
     )
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
