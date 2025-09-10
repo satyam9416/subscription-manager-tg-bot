@@ -8,6 +8,8 @@ class TelegramGroup(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     telegram_group_id = db.Column(db.String(100), unique=True, nullable=False)
     telegram_group_name = db.Column(db.String(255), nullable=False)
+    # Bot role in the group (e.g., member, administrator, left)
+    bot_role = db.Column(db.String(32), nullable=True)
     product_id = db.Column(
         db.Integer, db.ForeignKey("products.id"), unique=True, nullable=True
     )

@@ -85,6 +85,26 @@ class TelegramGroupBotService:
             ]:
                 await self._on_bot_added_to_group(chat, context)
 
+            if new_member.status in [
+                ChatMemberStatus.MEMBER,
+                ChatMemberStatus.ADMINISTRATOR,
+            ]:
+                # Persist role
+                def run_in_flask_context():
+                    with self.app.app_context():
+                        from app.services.telegram_group_service import (
+                            TelegramGroupService,
+                        )
+
+                        role_value = (
+                            "administrator"
+                            if new_member.status == ChatMemberStatus.ADMINISTRATOR
+                            else "member"
+                        )
+                        TelegramGroupService.set_bot_role(chat.id, role_value)
+
+                self.executor.submit(run_in_flask_context)
+
             # Bot removed from group
             elif old_member.status in [
                 ChatMemberStatus.MEMBER,
@@ -158,6 +178,7 @@ class TelegramGroupBotService:
                 from app.services.telegram_group_service import TelegramGroupService
 
                 TelegramGroupService.create_or_update_group(chat.id, chat.title)
+                TelegramGroupService.set_bot_role(chat.id, "member", is_active=True)
 
         # Execute in thread pool to avoid blocking
         self.executor.submit(run_in_flask_context)
@@ -189,6 +210,7 @@ class TelegramGroupBotService:
             with self.app.app_context():
                 from app.services.telegram_group_service import TelegramGroupService
 
+                TelegramGroupService.set_bot_role(chat.id, "left", is_active=False)
                 TelegramGroupService.delete_group_by_id(chat.id)
 
         self.executor.submit(run_in_flask_context)
@@ -420,6 +442,18 @@ class TelegramGroupBotService:
     def remove_user(self, chat_id: int, user_id: int) -> Tuple[bool, str]:
         """Synchronous wrapper for remove_user_api_async"""
         return self._run_async_in_bot_loop(self.remove_user_api_async(chat_id, user_id))
+
+    async def leave_chat_async(self, chat_id: int) -> Tuple[bool, str]:
+        try:
+            await self.bot.leave_chat(chat_id)
+            logger.info(f"✅ Bot left chat {chat_id}")
+            return True, "Bot left the chat"
+        except Exception as e:
+            logger.error(f"❌ Error leaving chat {chat_id}: {e}")
+            return False, f"Error leaving chat: {str(e)}"
+
+    def leave_chat(self, chat_id: int) -> Tuple[bool, str]:
+        return self._run_async_in_bot_loop(self.leave_chat_async(chat_id))
 
     # BOT LIFECYCLE MANAGEMENT
 

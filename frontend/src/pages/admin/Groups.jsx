@@ -5,6 +5,7 @@ import {
   mapProductToGroup,
   unmapProduct,
   getUnmappedGroups,
+  removeBotAndDeleteGroup,
 } from "../../services/api";
 
 function Groups() {
@@ -16,6 +17,8 @@ function Groups() {
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState("");
   const [showOnlyUnmapped, setShowOnlyUnmapped] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
 
   const fetchData = async () => {
     try {
@@ -24,7 +27,10 @@ function Groups() {
       // Get either all groups or only unmapped groups based on filter
       const groupsResponse = showOnlyUnmapped
         ? await getUnmappedGroups()
-        : await getGroups();
+        : await getGroups({
+            status: statusFilter || undefined,
+            role: roleFilter || undefined,
+          });
 
       setGroups(groupsResponse.data);
       setProducts(productsResponse.data);
@@ -37,7 +43,7 @@ function Groups() {
 
   useEffect(() => {
     fetchData();
-  }, [showOnlyUnmapped]);
+  }, [showOnlyUnmapped, statusFilter, roleFilter]);
 
   const handleOpenModal = (group) => {
     // Prevent opening modal for inactive groups
@@ -95,6 +101,24 @@ function Groups() {
     }
   };
 
+  const handleRemoveBotAndDelete = async (telegramGroupId) => {
+    if (
+      window.confirm(
+        "Are you sure you want to remove the bot from this group and delete it from the system?"
+      )
+    ) {
+      try {
+        await removeBotAndDeleteGroup(telegramGroupId);
+        fetchData();
+      } catch (err) {
+        setError(
+          err.response?.data?.message ||
+            "Failed to remove bot and delete group. Please try again."
+        );
+      }
+    }
+  };
+
   // Filter out products that are already mapped to a group
   const getUnmappedProducts = () => {
     return products.filter((product) => !product.telegram_group);
@@ -114,7 +138,7 @@ function Groups() {
         <h1 className="text-2xl font-bold text-gray-800">
           Manage Telegram Groups
         </h1>
-        <div className="flex items-center">
+        <div className="flex items-center space-x-4">
           <label className="mr-2">
             <input
               type="checkbox"
@@ -124,6 +148,31 @@ function Groups() {
             />
             Show only unmapped groups
           </label>
+          <div>
+            <label className="text-sm text-gray-600 mr-2">Status</label>
+            <select
+              className="border rounded px-2 py-1"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-sm text-gray-600 mr-2">Bot Role</label>
+            <select
+              className="border rounded px-2 py-1"
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+            >
+              <option value="">All</option>
+              <option value="member">Member</option>
+              <option value="administrator">Administrator</option>
+              <option value="left">Left</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -142,6 +191,9 @@ function Groups() {
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Group ID
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Bot Role
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
@@ -175,6 +227,11 @@ function Groups() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-500">
+                      {group.bot_role || "-"}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
                     {group.is_active ? (
                       <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                         Active
@@ -200,7 +257,7 @@ function Groups() {
                     {group.product ? (
                       <button
                         onClick={() => handleUnmapProduct(group.product.id)}
-                        className="text-red-600 hover:text-red-900"
+                        className="text-red-600 hover:text-red-900 mr-4"
                       >
                         Unmap
                       </button>
@@ -222,6 +279,14 @@ function Groups() {
                         Map to Product
                       </button>
                     )}
+                    <button
+                      onClick={() =>
+                        handleRemoveBotAndDelete(group.telegram_group_id)
+                      }
+                      className="text-red-600 hover:text-red-900 ml-4"
+                    >
+                      Remove Bot & Delete
+                    </button>
                   </td>
                 </tr>
               ))

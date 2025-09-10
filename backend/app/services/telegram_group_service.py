@@ -5,8 +5,17 @@ from sqlalchemy.exc import SQLAlchemyError
 
 class TelegramGroupService:
     @staticmethod
-    def get_all_groups():
-        return TelegramGroup.query.all()
+    def get_all_groups(status: str = None, role: str = None):
+        query = TelegramGroup.query
+        if status == "active":
+            query = query.filter_by(is_active=True)
+        elif status == "inactive":
+            query = query.filter_by(is_active=False)
+
+        if role:
+            query = query.filter_by(bot_role=role)
+
+        return query.all()
 
     @staticmethod
     def get_unmapped_groups():
@@ -113,6 +122,7 @@ class TelegramGroupService:
             ).first()
             if group:
                 group.is_active = False
+                group.bot_role = "left"
                 db.session.commit()
                 return True
             return False
@@ -137,3 +147,36 @@ class TelegramGroupService:
         except SQLAlchemyError as e:
             db.session.rollback()
             raise e
+
+    @staticmethod
+    def set_bot_role(telegram_group_id, bot_role: str, is_active: bool = None):
+        try:
+            telegram_group_id_str = str(telegram_group_id)
+            group = TelegramGroup.query.filter_by(
+                telegram_group_id=telegram_group_id_str
+            ).first()
+            if not group:
+                return False
+
+            group.bot_role = bot_role
+            if is_active is not None:
+                group.is_active = is_active
+
+            db.session.commit()
+            return True
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            raise e
+
+    @staticmethod
+    def remove_bot_and_delete(telegram_group_id):
+        from app.services.telegram import tg_bot
+
+        # Always attempt to leave chat; ignore failures
+        try:
+            tg_bot.leave_chat(int(telegram_group_id))
+        except Exception:
+            pass
+
+        # Delete the group record
+        return TelegramGroupService.delete_group_by_id(telegram_group_id)
