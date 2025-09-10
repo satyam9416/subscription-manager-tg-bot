@@ -119,3 +119,21 @@ class TelegramGroupService:
         except SQLAlchemyError as e:
             db.session.rollback()
             raise e
+
+    @staticmethod
+    def delete_group_by_id(telegram_group_id):
+        try:
+            # Convert telegram_group_id to string
+            telegram_group_id_str = str(telegram_group_id)
+
+            group = TelegramGroup.query.filter_by(
+                telegram_group_id=telegram_group_id_str
+            ).first()
+            if group:
+                db.session.delete(group)
+                db.session.commit()
+                return True
+            return False
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            raise e

@@ -189,7 +189,7 @@ class TelegramGroupBotService:
             with self.app.app_context():
                 from app.services.telegram_group_service import TelegramGroupService
 
-                TelegramGroupService.mark_group_as_inactive(chat.id)
+                TelegramGroupService.delete_group_by_id(chat.id)
 
         self.executor.submit(run_in_flask_context)
 
