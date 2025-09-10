@@ -168,6 +168,7 @@ FRONTEND_PORT=3000
 - Supports filters: `?status=active|inactive&role=member|administrator|left`
 - `GET /api/groups/unmapped` - List unmapped Telegram groups
 - `DELETE /api/groups/{telegram_group_id}` - Remove bot from group and delete record
+- `POST /api/groups/{telegram_group_id}/message` - Send a message to a group
 
 ### Mapping
 

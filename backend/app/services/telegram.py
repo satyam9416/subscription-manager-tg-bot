@@ -455,6 +455,18 @@ class TelegramGroupBotService:
     def leave_chat(self, chat_id: int) -> Tuple[bool, str]:
         return self._run_async_in_bot_loop(self.leave_chat_async(chat_id))
 
+    async def send_message_async(self, chat_id: int, text: str) -> Tuple[bool, str]:
+        try:
+            await self.bot.send_message(chat_id=chat_id, text=text)
+            logger.info(f"✅ Sent message to chat {chat_id}")
+            return True, "Message sent"
+        except Exception as e:
+            logger.error(f"❌ Error sending message to chat {chat_id}: {e}")
+            return False, f"Error sending message: {str(e)}"
+
+    def send_message(self, chat_id: int, text: str) -> Tuple[bool, str]:
+        return self._run_async_in_bot_loop(self.send_message_async(chat_id, text))
+
     # BOT LIFECYCLE MANAGEMENT
 
     def start_bot(self):

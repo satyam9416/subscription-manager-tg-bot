@@ -70,3 +70,22 @@ def remove_bot_and_delete_group(telegram_group_id):
         return jsonify({"message": "Bot removed and group deleted"}), 200
     except Exception as e:
         return jsonify({"message": str(e)}), 500
+
+
+@group_bp.route("/groups/<string:telegram_group_id>/message", methods=["POST"])
+def send_message_to_group(telegram_group_id):
+    try:
+        data = request.json or {}
+        text = data.get("text")
+        if not text or not isinstance(text, str) or not text.strip():
+            return jsonify({"message": "'text' is required"}), 400
+
+        from app.services.telegram import tg_bot
+
+        success, message = tg_bot.send_message(int(telegram_group_id), text.strip())
+        status_code = 200 if success else 500
+        return jsonify({"message": message, "success": success}), status_code
+    except ValueError:
+        return jsonify({"message": "Invalid telegram_group_id"}), 400
+    except Exception as e:
+        return jsonify({"message": str(e)}), 500

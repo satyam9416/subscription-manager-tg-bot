@@ -6,6 +6,7 @@ import {
   unmapProduct,
   getUnmappedGroups,
   removeBotAndDeleteGroup,
+  sendGroupMessage,
 } from "../../services/api";
 
 function Groups() {
@@ -19,6 +20,8 @@ function Groups() {
   const [showOnlyUnmapped, setShowOnlyUnmapped] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false);
+  const [messageText, setMessageText] = useState("");
 
   const fetchData = async () => {
     try {
@@ -116,6 +119,37 @@ function Groups() {
             "Failed to remove bot and delete group. Please try again."
         );
       }
+    }
+  };
+
+  const openSendModal = (group) => {
+    setSelectedGroup(group);
+    setMessageText("");
+    setIsSendModalOpen(true);
+  };
+
+  const closeSendModal = () => {
+    setIsSendModalOpen(false);
+    setSelectedGroup(null);
+  };
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!messageText.trim()) {
+      setError("Message text is required");
+      return;
+    }
+    try {
+      await sendGroupMessage(
+        selectedGroup.telegram_group_id,
+        messageText.trim()
+      );
+      closeSendModal();
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Failed to send message. Please try again."
+      );
     }
   };
 
@@ -280,6 +314,12 @@ function Groups() {
                       </button>
                     )}
                     <button
+                      onClick={() => openSendModal(group)}
+                      className="text-gray-600 hover:text-gray-900 ml-4"
+                    >
+                      Send Message
+                    </button>
+                    <button
                       onClick={() =>
                         handleRemoveBotAndDelete(group.telegram_group_id)
                       }
@@ -346,6 +386,55 @@ function Groups() {
                 <button
                   type="button"
                   onClick={handleCloseModal}
+                  className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isSendModalOpen && selectedGroup && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full">
+            <h2 className="text-xl font-bold mb-4">Send Message to Group</h2>
+
+            <p className="mb-4">
+              <span className="font-bold">Group:</span>{" "}
+              {selectedGroup.telegram_group_name}
+            </p>
+
+            <form onSubmit={handleSendMessage}>
+              <div className="mb-6">
+                <label
+                  className="block text-gray-700 text-sm font-bold mb-2"
+                  htmlFor="messageText"
+                >
+                  Message
+                </label>
+                <textarea
+                  id="messageText"
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  rows="4"
+                  value={messageText}
+                  onChange={(e) => setMessageText(e.target.value)}
+                  placeholder="Type your message here..."
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <button
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                  type="submit"
+                >
+                  Send
+                </button>
+                <button
+                  type="button"
+                  onClick={closeSendModal}
                   className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
                 >
                   Cancel

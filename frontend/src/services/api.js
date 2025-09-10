@@ -20,6 +20,8 @@ export const unmapProduct = (productId) =>
   api.delete(`/products/${productId}/unmap`);
 export const removeBotAndDeleteGroup = (telegramGroupId) =>
   api.delete(`/groups/${telegramGroupId}`);
+export const sendGroupMessage = (telegramGroupId, text) =>
+  api.post(`/groups/${telegramGroupId}/message`, { text });
 
 // Subscriptions
 export const getSubscriptions = (params) =>

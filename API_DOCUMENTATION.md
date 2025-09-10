@@ -308,6 +308,36 @@ Removes the bot from a Telegram group and deletes the group record from the syst
 }
 ```
 
+### Send Message to Group
+
+Sends a plain text message to a Telegram group.
+
+- **URL**: `/groups/<telegram_group_id>/message`
+- **Method**: `POST`
+- **URL Parameters**:
+  - `telegram_group_id`: Telegram's internal group ID (string)
+- **Request Body**:
+
+```json
+{
+  "text": "Hello, group!"
+}
+```
+
+- **Response Codes**:
+  - `200 OK`: Message sent
+  - `400 Bad Request`: Missing or invalid `text`/`telegram_group_id`
+  - `500 Internal Server Error`: Failed to send message
+
+**Response Format**:
+
+```json
+{
+  "success": true,
+  "message": "Message sent"
+}
+```
+
 ---
 
 ## Subscription API
