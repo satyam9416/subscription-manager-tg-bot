@@ -24,8 +24,9 @@ Retrieves a list of all products.
 - **Authentication**: Not required
 - **Response Codes**:
   - `200 OK`: Successfully retrieved products
-  
+
 **Response Format**:
+
 ```json
 {
   "data": [
@@ -53,8 +54,9 @@ Retrieves a specific product by its ID.
 - **Response Codes**:
   - `200 OK`: Successfully retrieved product
   - `404 Not Found`: Product not found
-  
+
 **Response Format**:
+
 ```json
 {
   "id": 1,
@@ -74,6 +76,7 @@ Creates a new product.
 - **Method**: `POST`
 - **Authentication**: Not required
 - **Request Body**:
+
 ```json
 {
   "name": "New Product",
@@ -81,12 +84,14 @@ Creates a new product.
   "price": 99.99
 }
 ```
+
 - **Response Codes**:
   - `201 Created`: Successfully created product
   - `400 Bad Request`: Validation error
   - `500 Internal Server Error`: Server error
-  
+
 **Response Format**:
+
 ```json
 {
   "id": 1,
@@ -108,6 +113,7 @@ Updates an existing product.
   - `product_id`: The ID of the product to update
 - **Authentication**: Not required
 - **Request Body**:
+
 ```json
 {
   "name": "Updated Product Name",
@@ -115,13 +121,15 @@ Updates an existing product.
   "price": 149.99
 }
 ```
+
 - **Response Codes**:
   - `200 OK`: Successfully updated product
   - `400 Bad Request`: Validation error
   - `404 Not Found`: Product not found
   - `500 Internal Server Error`: Server error
-  
+
 **Response Format**:
+
 ```json
 {
   "id": 1,
@@ -146,8 +154,9 @@ Deletes a product.
   - `200 OK`: Successfully deleted product
   - `404 Not Found`: Product not found
   - `500 Internal Server Error`: Server error
-  
+
 **Response Format**:
+
 ```json
 {
   "message": "Product deleted successfully"
@@ -166,18 +175,24 @@ Retrieves a list of all Telegram groups.
 
 - **URL**: `/groups`
 - **Method**: `GET`
+- **Query Parameters**:
+  - `status` (optional): Filter by status. Allowed: `active`, `inactive`
+  - `role` (optional): Filter by bot role. Allowed: `member`, `administrator`, `left`
 - **Authentication**: Not required
 - **Response Codes**:
   - `200 OK`: Successfully retrieved groups
-  
+
 **Response Format**:
+
 ```json
 [
   {
     "id": 1,
     "telegram_group_id": "-1001234567890",
     "telegram_group_name": "Group Name",
+    "bot_role": "member",
     "product_id": 1,
+    "is_active": true,
     "created_at": "2023-01-01T12:00:00Z",
     "updated_at": "2023-01-01T12:00:00Z"
   }
@@ -193,8 +208,9 @@ Retrieves a list of Telegram groups that are not mapped to any product.
 - **Authentication**: Not required
 - **Response Codes**:
   - `200 OK`: Successfully retrieved unmapped groups
-  
+
 **Response Format**:
+
 ```json
 [
   {
@@ -202,6 +218,8 @@ Retrieves a list of Telegram groups that are not mapped to any product.
     "telegram_group_id": "-1001234567890",
     "telegram_group_name": "Group Name",
     "product_id": null,
+    "bot_role": "member",
+    "is_active": true,
     "created_at": "2023-01-01T12:00:00Z",
     "updated_at": "2023-01-01T12:00:00Z"
   }
@@ -218,24 +236,29 @@ Maps a product to a Telegram group.
   - `product_id`: The ID of the product to map
 - **Authentication**: Not required
 - **Request Body**:
+
 ```json
 {
   "telegram_group_id": "-1001234567890",
   "telegram_group_name": "Group Name"
 }
 ```
+
 - **Response Codes**:
   - `200 OK`: Successfully mapped product to group
   - `400 Bad Request`: Missing required fields or other error
   - `500 Internal Server Error`: Server error
-  
+
 **Response Format**:
+
 ```json
 {
   "id": 1,
   "telegram_group_id": "-1001234567890",
   "telegram_group_name": "Group Name",
+  "bot_role": "member",
   "product_id": 1,
+  "is_active": true,
   "created_at": "2023-01-01T12:00:00Z",
   "updated_at": "2023-01-01T12:00:00Z"
 }
@@ -254,11 +277,34 @@ Removes the mapping between a product and a Telegram group.
   - `200 OK`: Successfully unmapped product
   - `404 Not Found`: No mapping found for this product
   - `500 Internal Server Error`: Server error
-  
+
 **Response Format**:
+
 ```json
 {
   "message": "Product unmapped successfully"
+}
+```
+
+### Remove Bot and Delete Group
+
+Removes the bot from a Telegram group and deletes the group record from the system.
+
+- **URL**: `/groups/<telegram_group_id>`
+- **Method**: `DELETE`
+- **URL Parameters**:
+  - `telegram_group_id`: Telegram's internal group ID (string)
+- **Authentication**: Not required
+- **Response Codes**:
+  - `200 OK`: Bot removed and group deleted
+  - `404 Not Found`: Group not found
+  - `500 Internal Server Error`: Server error
+
+**Response Format**:
+
+```json
+{
+  "message": "Bot removed and group deleted"
 }
 ```
 
@@ -286,8 +332,9 @@ Retrieves a paginated list of all subscriptions with filtering options.
 - **Authentication**: Not required
 - **Response Codes**:
   - `200 OK`: Successfully retrieved subscriptions
-  
+
 **Response Format**:
+
 ```json
 {
   "items": [
@@ -318,6 +365,7 @@ Creates a new subscription for a user to a product.
 - **Method**: `POST`
 - **Authentication**: Not required
 - **Request Body**:
+
 ```json
 {
   "email": "user@example.com",
@@ -325,7 +373,9 @@ Creates a new subscription for a user to a product.
   "expiration_datetime": "2024-01-01T12:00:00Z"
 }
 ```
+
 OR
+
 ```json
 {
   "email": "user@example.com",
@@ -333,12 +383,14 @@ OR
   "expiration_datetime": "2024-01-01T12:00:00Z"
 }
 ```
+
 - **Response Codes**:
   - `201 Created`: Successfully created subscription
   - `400 Bad Request`: Validation error
   - `500 Internal Server Error`: Server error
-  
+
 **Response Format**:
+
 ```json
 {
   "message": "Subscription created successfully",
@@ -356,18 +408,21 @@ Cancels a subscription based on user email and product ID.
 - **Method**: `DELETE`
 - **Authentication**: Not required
 - **Request Body**:
+
 ```json
 {
   "email": "user@example.com",
   "product_id": 1
 }
 ```
+
 - **Response Codes**:
   - `200 OK`: Successfully cancelled subscription
   - `400 Bad Request`: Validation error
   - `500 Internal Server Error`: Server error
-  
+
 **Response Format**:
+
 ```json
 {
   "message": "Subscription cancelled successfully"
@@ -383,8 +438,9 @@ Retrieves a list of all users.
 - **Authentication**: Not required
 - **Response Codes**:
   - `200 OK`: Successfully retrieved users
-  
+
 **Response Format**:
+
 ```json
 [
   {
@@ -407,8 +463,9 @@ Cancels a subscription by its ID.
   - `200 OK`: Successfully cancelled subscription
   - `400 Bad Request`: Error cancelling subscription
   - `500 Internal Server Error`: Server error
-  
+
 **Response Format**:
+
 ```json
 {
   "message": "Subscription cancelled successfully"
@@ -435,8 +492,9 @@ Endpoint for receiving updates from Telegram.
   - `200 OK`: Update processed successfully
   - `401 Unauthorized`: Invalid token
   - `500 Internal Server Error`: Error processing update
-  
+
 **Response Format**:
+
 ```json
 {
   "message": "Update processed successfully"
@@ -453,8 +511,9 @@ Tests the Telegram webhook configuration.
 - **Response Codes**:
   - `200 OK`: Webhook info retrieved successfully
   - `500 Internal Server Error`: Error getting webhook info
-  
+
 **Response Format**:
+
 ```json
 {
   "message": "Webhook info retrieved successfully",
@@ -505,6 +564,7 @@ API requests may be subject to rate limiting. When rate limits are exceeded, the
 ## Schemas
 
 ### Product Schema
+
 - `id`: Integer - Unique identifier
 - `name`: String - Product name
 - `description`: String - Product description
@@ -513,14 +573,18 @@ API requests may be subject to rate limiting. When rate limits are exceeded, the
 - `updated_at`: DateTime - Last update timestamp
 
 ### Telegram Group Schema
+
 - `id`: Integer - Unique identifier
 - `telegram_group_id`: String - Telegram's internal group ID
 - `telegram_group_name`: String - Group name
+- `bot_role`: String - Bot role in the group (`member`, `administrator`, `left`)
 - `product_id`: Integer - Associated product ID (nullable)
+- `is_active`: Boolean - Whether the group is currently active in the system
 - `created_at`: DateTime - Creation timestamp
 - `updated_at`: DateTime - Last update timestamp
 
 ### Subscription Schema
+
 - `id`: Integer - Unique identifier
 - `user_id`: Integer - User ID
 - `product_id`: Integer - Product ID
@@ -532,5 +596,6 @@ API requests may be subject to rate limiting. When rate limits are exceeded, the
 - `updated_at`: DateTime - Last update timestamp
 
 ### User Schema
+
 - `id`: Integer - Unique identifier
 - `email`: String - User email address

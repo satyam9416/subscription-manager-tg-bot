@@ -15,6 +15,7 @@ class TelegramGroupService:
         if role:
             query = query.filter_by(bot_role=role)
 
+        query = query.order_by(TelegramGroup.created_at)
         return query.all()
 
     @staticmethod

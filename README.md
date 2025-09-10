@@ -165,7 +165,9 @@ FRONTEND_PORT=3000
 ### Groups
 
 - `GET /api/groups` - List all Telegram groups
+- Supports filters: `?status=active|inactive&role=member|administrator|left`
 - `GET /api/groups/unmapped` - List unmapped Telegram groups
+- `DELETE /api/groups/{telegram_group_id}` - Remove bot from group and delete record
 
 ### Mapping
 
@@ -176,6 +178,14 @@ FRONTEND_PORT=3000
 
 - `POST /api/subscribe` - Create a new subscription
 - `GET /api/subscriptions` - List all subscriptions (admin only)
+
+## Database Migrations
+
+Run Alembic migrations after pulling changes:
+
+```bash
+docker-compose exec backend alembic upgrade head
+```
 
 ## License
 
