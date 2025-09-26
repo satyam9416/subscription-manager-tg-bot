@@ -286,10 +286,10 @@ class TelegramGroupBotService:
 
             except Exception as e:
                 logger.error(f"Failed to approve join request for {user_name}: {e}")
-                await context.bot.send_message(
-                    chat_id=chat_id,
-                    text=f"❌ Failed to approve join request from {user_name} via link '{invite_link_name}'. Error: {e}",
-                )
+                # await context.bot.send_message(
+                #     chat_id=chat_id,
+                #     text=f"❌ Failed to approve join request from {user_name} via link '{invite_link_name}'. Error: {e}",
+                # )
             finally:
                 return
 
@@ -320,10 +320,10 @@ class TelegramGroupBotService:
             )
         except Exception as e:
             logger.error(f"Failed to decline join request for {user_name}: {e}")
-            await context.bot.send_message(
-                chat_id=chat_id,
-                text=f"❌ Failed to decline join request from {user_name} via link '{invite_link_name}'. Error: {e}",
-            )
+            # await context.bot.send_message(
+            #     chat_id=chat_id,
+            #     text=f"❌ Failed to decline join request from {user_name} via link '{invite_link_name}'. Error: {e}",
+            # )
 
     # Helper method to run async function in bot's event loop
     def _run_async_in_bot_loop(self, coro):
