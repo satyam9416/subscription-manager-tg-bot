@@ -54,13 +54,11 @@ def create_subscription():
     try:
         data = subscription_request_schema.load(request.json)
         expiration_datetime = data.get("expiration_datetime")
+        force_renew = bool(request.args.get("force_renew", type=int, default=1))
 
         if data.get("product_id"):
             subscription, error = SubscriptionService.create_subscription(
-                data["email"],
-                data["product_id"],
-                expiration_datetime,
-                bool(request.args.get("force_renew", type=int)),
+                data["email"], data["product_id"], expiration_datetime, force_renew
             )
         else:
             subscription, error = (
@@ -68,7 +66,7 @@ def create_subscription():
                     data["email"],
                     data["product_name"],
                     expiration_datetime,
-                    bool(request.args.get("force_renew", type=int)),
+                    force_renew,
                 )
             )
 
