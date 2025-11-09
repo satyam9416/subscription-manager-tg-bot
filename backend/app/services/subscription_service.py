@@ -2,7 +2,6 @@ from datetime import datetime, timedelta, timezone
 from app import db
 from app.models import User, Product, TelegramGroup, Subscription
 from sqlalchemy.exc import SQLAlchemyError
-from app.bot.telegram_client import generate_invite_link
 from app.services.telegram import tg_bot
 
 
@@ -243,6 +242,8 @@ class SubscriptionService:
             tg_bot.remove_user(
                 subscription.telegram_group.telegram_group_id, user.telegram_user_id
             )
+
+            user.telegram_user_id = None
 
             subscription.status = "cancelled"
 
