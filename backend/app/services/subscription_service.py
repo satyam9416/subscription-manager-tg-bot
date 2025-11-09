@@ -84,13 +84,16 @@ class SubscriptionService:
 
     @staticmethod
     def create_subsciption_by_product_name(
-        email, product_name, expiration_datetime=None
+        email,
+        product_name,
+        expiration_datetime=None,
+        force_renew=False,
     ):
         product = Product.query.filter_by(name=product_name).first()
         if not product:
             return None, "Product not found"
         return SubscriptionService.create_subscription(
-            email, product.id, expiration_datetime
+            email, product.id, expiration_datetime, force_renew
         )
 
     @staticmethod
@@ -98,6 +101,7 @@ class SubscriptionService:
         email: str,
         product_id: int,
         expiration_datetime: datetime = None,
+        force_renew: bool = False,
     ):
         # Set default expiration to 30 days from now if not provided
         subscription_expires_at = (
@@ -128,8 +132,13 @@ class SubscriptionService:
                 Subscription.status.in_(["active", "pending_join"]),
             ).first()
 
-            if existing_subscription:
+            if existing_subscription and not force_renew:
                 return None, "User already has an ongoing subscription for this product"
+
+            if existing_subscription:
+                SubscriptionService.cancel_subscription_by_email_and_product_id(
+                    email, product_id
+                )
 
             subscription = Subscription(
                 user_id=user.id,

@@ -178,7 +178,16 @@ FRONTEND_PORT=3000
 ### Subscriptions
 
 - `POST /api/subscribe` - Create a new subscription
+  - Query parameters:
+    - `force_renew` (optional, integer): Set to `1` to cancel existing active subscription and create a new one
+  - Request body:
+    - `email` (required): User email address
+    - `product_id` (optional): Product ID to subscribe to
+    - `product_name` (optional): Product name to subscribe to (either `product_id` or `product_name` required)
+    - `expiration_datetime` (optional): Custom expiration date/time for the subscription
 - `GET /api/subscriptions` - List all subscriptions (admin only)
+- `DELETE /api/subscriptions` - Cancel a subscription by email and product ID
+- `POST /api/subscriptions/{subscription_id}/cancel` - Cancel a specific subscription
 
 ## Database Migrations
 

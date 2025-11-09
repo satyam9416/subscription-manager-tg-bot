@@ -393,6 +393,8 @@ Creates a new subscription for a user to a product.
 
 - **URL**: `/subscribe`
 - **Method**: `POST`
+- **Query Parameters**:
+  - `force_renew` (optional): Set to `1` to cancel any existing active subscription and create a new one
 - **Authentication**: Not required
 - **Request Body**:
 
@@ -414,9 +416,15 @@ OR
 }
 ```
 
+**Request Body Fields**:
+- `email` (required): User email address
+- `product_id` (optional): Product ID to subscribe to
+- `product_name` (optional): Product name to subscribe to (either `product_id` or `product_name` required)
+- `expiration_datetime` (optional): Custom expiration date/time for the subscription
+
 - **Response Codes**:
   - `201 Created`: Successfully created subscription
-  - `400 Bad Request`: Validation error
+  - `400 Bad Request`: Validation error or existing active subscription (without `force_renew`)
   - `500 Internal Server Error`: Server error
 
 **Response Format**:

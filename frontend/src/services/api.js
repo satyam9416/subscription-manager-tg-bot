@@ -26,7 +26,8 @@ export const sendGroupMessage = (telegramGroupId, text) =>
 // Subscriptions
 export const getSubscriptions = (params) =>
   api.get("/subscriptions", { params });
-export const createSubscription = (data) => api.post("/subscribe", data);
+export const createSubscription = (data, forceRenew = false) => 
+  api.post("/subscribe", data, { params: { force_renew: forceRenew ? 1 : 0 } });
 export const cancelSubscription = (id) =>
   api.post(`/subscriptions/${id}/cancel`);
 
