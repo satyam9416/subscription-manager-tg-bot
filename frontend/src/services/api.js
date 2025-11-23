@@ -31,7 +31,4 @@ export const createSubscription = (data, forceRenew = false) =>
 export const cancelSubscription = (id) =>
   api.post(`/subscriptions/${id}/cancel`);
 
-// Users
-export const getUsers = () => api.get("/users");
-
 export default api;

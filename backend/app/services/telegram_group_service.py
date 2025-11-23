@@ -179,5 +179,12 @@ class TelegramGroupService:
         except Exception:
             pass
 
+        import logging
+
+        logging.info(f"Left Telegram group {telegram_group_id}")
+
         # Delete the group record
-        return TelegramGroupService.delete_group_by_id(telegram_group_id)
+        result = TelegramGroupService.delete_group_by_id(telegram_group_id)
+
+        # logging.info(f"result {result}")
+        return True

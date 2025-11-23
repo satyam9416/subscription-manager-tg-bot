@@ -3,7 +3,10 @@ from marshmallow import Schema, fields, validate, ValidationError
 
 class SubscriptionSchema(Schema):
     id = fields.Int(dump_only=True)
-    user_id = fields.Int(dump_only=True)
+    user_email = fields.Email(dump_only=True)
+    user_tg_id = fields.Str(dump_only=True)
+    user_tg_username = fields.Str(dump_only=True)
+    user_email = fields.Email(dump_only=True)
     product_id = fields.Int(required=True)
     telegram_group_id = fields.Int(dump_only=True)
     invite_link_token = fields.Str(dump_only=True)
@@ -15,12 +18,6 @@ class SubscriptionSchema(Schema):
     created_at = fields.DateTime(dump_only=True)
     updated_at = fields.DateTime(dump_only=True)
 
-    # Include related information
-    user = fields.Nested(
-        "UserSchema",
-        only=("id", "email", "telegram_username", "telegram_user_id"),
-        dump_only=True,
-    )
     product = fields.Nested(
         "ProductSchema", only=("id", "name", "description"), dump_only=True
     )

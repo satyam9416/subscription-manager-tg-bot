@@ -4,9 +4,13 @@ from app import db
 
 class Subscription(db.Model):
     __tablename__ = "subscriptions"
+    # __table_args__ = (
+    #     db.UniqueConstraint(
+    #         "user_email", "product_id", name="uix_user_email_product_id"
+    #     ),
+    # )
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     product_id = db.Column(db.Integer, db.ForeignKey("products.id"), nullable=False)
 
     telegram_group_id = db.Column(
@@ -31,10 +35,14 @@ class Subscription(db.Model):
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
+    # user details
+    user_email = db.Column(db.String(120), nullable=False)
+    user_tg_id = db.Column(db.String(120), nullable=True)
+    user_tg_username = db.Column(db.String(120), nullable=True)
+
     # Relationships
-    user = db.relationship("User", back_populates="subscriptions")
     product = db.relationship("Product", back_populates="subscriptions")
     telegram_group = db.relationship("TelegramGroup", back_populates="subscriptions")
 
     def __repr__(self):
-        return f"<Subscription {self.id} - User: {self.user_id}, Product: {self.product_id}>"
+        return f"<Subscription {self.id} - User: {self.user_email}, Product: {self.product_id}>"

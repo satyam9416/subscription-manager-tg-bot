@@ -4,7 +4,6 @@ from telegram.ext import CommandHandler, MessageHandler, filters, CallbackContex
 from telegram import Update
 from app import db
 from app.services import TelegramGroupService, SubscriptionService
-from app.models import User
 
 # Configure logging
 logging.basicConfig(
@@ -479,8 +478,9 @@ async def handle_bot_chat_member_update_obj(update: Update, context: CallbackCon
         try:
             # Import the Flask app directly from the app package
             from app import create_app
+
             app = create_app()
-            
+
             # Mark the group as inactive in our database using app context
             with app.app_context():
                 TelegramGroupService.mark_group_as_inactive(chat_id)

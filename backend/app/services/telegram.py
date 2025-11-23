@@ -225,7 +225,27 @@ class TelegramGroupBotService:
 
     async def _on_user_left_group(self, chat, user, context: ContextTypes.DEFAULT_TYPE):
         """Called when a user leaves the group"""
-        logger.info(f"👋 User {user.full_name} (ID: {user.id}) left group {chat.title}")
+        
+        logger.info(f"👋 User {user.full_name} (ID: {user.id}) left group {chat.title} ({chat.id})")
+
+        # Run Flask context operations in a thread
+        def run_in_flask_context():
+            with self.app.app_context():
+                from app.services.subscription_service import SubscriptionService
+
+                subscription = SubscriptionService.get_active_subscriptions_by_user_tg_id_and_group_id(
+                    user.id, chat.id
+                )
+
+                if subscription:
+                    logger.info(
+                        f"🔍 Found active subscription for user {user.full_name} (ID: {user.id}) in group {chat.title}"
+                    )
+                    SubscriptionService.update_subscription_with_telegram_user(
+                        subscription.invite_link_token, "", ""
+                    )
+
+        self.executor.submit(run_in_flask_context)
 
     async def _on_user_joined_via_invite(
         self, chat, user, invite_token: str, context: ContextTypes.DEFAULT_TYPE
@@ -288,22 +308,15 @@ class TelegramGroupBotService:
         if subsciption.status == "pending_join":
             try:
                 await join_request.approve()
-                # Send a confirmation message to the chat
-                # await context.bot.send_message(
-                #     chat_id=chat_id,
-                #     text=f"✅ Join request from {user_name} via link '{invite_link_name}' has been automatically APPROVED.",
-                # )
-                logger.info(
+
+                logger.debug(
                     f"Approved join request for {user_name} via link '{invite_link_name}'"
                 )
-
                 with self.app.app_context():
+                    from app.services.subscription_service import SubscriptionService
+
                     SubscriptionService.update_subscription_with_telegram_user(
                         invite_link_name, user_id, user_name
-                    )
-
-                    SubscriptionService.update_subscription_status(
-                        subsciption.id, "active"
                     )
 
             except Exception as e:
@@ -326,7 +339,7 @@ class TelegramGroupBotService:
         ):
             logger.info(f"Subscription expired for invite token: {invite_link_name}")
 
-        if subsciption.status == "cancelled":
+        elif subsciption.status == "cancelled":
             logger.info(f"Subscription cancelled for invite token: {invite_link_name}")
 
         try:
@@ -342,10 +355,10 @@ class TelegramGroupBotService:
             )
         except Exception as e:
             logger.error(f"Failed to decline join request for {user_name}: {e}")
-            await context.bot.send_message(
-                chat_id=chat_id,
-                text=f"❌ Failed to decline join request from {user_name} via link '{invite_link_name}'. Error: {e}",
-            )
+            # await context.bot.send_message(
+            #     chat_id=chat_id,
+            #     text=f"❌ Failed to decline join request from {user_name} via link '{invite_link_name}'. Error: {e}",
+            # )
 
     # Helper method to run async function in bot's event loop
     def _run_async_in_bot_loop(self, coro):

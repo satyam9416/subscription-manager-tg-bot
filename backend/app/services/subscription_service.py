@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from app import db
-from app.models import User, Product, TelegramGroup, Subscription
+from app.models import Product, Subscription, TelegramGroup
 from sqlalchemy.exc import SQLAlchemyError
 from app.services.telegram import tg_bot
 
@@ -15,7 +15,7 @@ class SubscriptionService:
         search=None,
         status=None,
         product_id=None,
-        user_id=None,
+        user_email=None,
     ):
         query = Subscription.query
 
@@ -26,29 +26,22 @@ class SubscriptionService:
         if product_id:
             query = query.filter(Subscription.product_id == product_id)
 
-        if user_id:
-            query = query.filter(Subscription.user_id == user_id)
+        if user_email:
+            query = query.filter(Subscription.user_email == user_email)
 
         # Apply search
         if search:
-            # Join with User to search by email
-            query = query.join(User).filter(User.email.ilike(f"%{search}%"))
+            query = query.filter(Subscription.user_email.ilike(f"%{search}%"))
 
         # Apply sorting
         if sort_by == "email":
-            # Join with User to sort by email
-            query = query.join(User, isouter=True)
-            if sort_order == "asc":
-                query = query.order_by(User.email.asc())
-            else:
-                query = query.order_by(User.email.desc())
+            sort_column = Subscription.user_email
         else:
-            # Sort by Subscription attributes
             sort_column = getattr(Subscription, sort_by, Subscription.created_at)
-            if sort_order == "asc":
-                query = query.order_by(sort_column.asc())
-            else:
-                query = query.order_by(sort_column.desc())
+
+        query = query.order_by(
+            sort_column.asc() if sort_order == "asc" else sort_column.desc()
+        )
 
         # Apply pagination
         total = query.count()
@@ -71,8 +64,19 @@ class SubscriptionService:
         return Subscription.query.filter_by(invite_link_token=invite_token).first()
 
     @staticmethod
-    def get_active_subscriptions_by_user_id(user_id):
-        return Subscription.query.filter_by(user_id=user_id, status="active").all()
+    def get_active_subscriptions_by_user_email(user_email):
+        return Subscription.query.filter_by(
+            user_email=user_email, status="active"
+        ).all()
+
+    @staticmethod
+    def get_active_subscriptions_by_user_tg_id_and_group_id(
+        user_tg_id, telegram_group_id
+    ):        
+        return Subscription.query.filter(
+            Subscription.user_tg_id == str(user_tg_id) if user_tg_id is not None else None
+    
+        ).filter(Subscription.status == "active").join(TelegramGroup).filter(TelegramGroup.telegram_group_id == str(telegram_group_id) if telegram_group_id is not None else None).first()
 
     @staticmethod
     def get_expired_subscriptions():
@@ -117,16 +121,9 @@ class SubscriptionService:
             if not product.telegram_group:
                 return None, "Product is not mapped to a Telegram group"
 
-            # Get or create user
-            user = User.query.filter_by(email=email).first()
-            if not user:
-                user = User(email=email)
-                db.session.add(user)
-                db.session.flush()  # Get user ID without committing
-
             # Check if user already has an active subscription for this product
             existing_subscription = Subscription.query.filter(
-                Subscription.user_id == user.id,
+                Subscription.user_email == email,
                 Subscription.product_id == product_id,
                 Subscription.status.in_(["active", "pending_join"]),
             ).first()
@@ -140,7 +137,7 @@ class SubscriptionService:
                 )
 
             subscription = Subscription(
-                user_id=user.id,
+                user_email=email,
                 product_id=product_id,
                 telegram_group_id=product.telegram_group.id,
                 subscription_expires_at=subscription_expires_at,
@@ -175,19 +172,20 @@ class SubscriptionService:
         invite_token, telegram_user_id, telegram_username
     ):
         try:
+            import logging
             subscription = Subscription.query.filter_by(
                 invite_link_token=invite_token
             ).first()
             if not subscription:
                 return None, "Subscription not found"
 
-            # Update user with Telegram information
-            user = subscription.user
-            user.telegram_user_id = telegram_user_id
-            user.telegram_username = telegram_username
+            subscription.user_tg_id = telegram_user_id
+            subscription.user_tg_username = telegram_username
 
             # Update subscription status
-            subscription.status = "active"
+            subscription.status = (
+                "active" if subscription.user_tg_id else "pending_join"
+            )
 
             db.session.commit()
             return subscription, None
@@ -217,7 +215,7 @@ class SubscriptionService:
                 return None, "Subscription not found"
 
             return SubscriptionService.cancel_subscription_by_email_and_product_id(
-                subscription.user.email, subscription.product_id
+                subscription.user_email, subscription.product_id
             )
 
         except Exception as e:
@@ -227,23 +225,22 @@ class SubscriptionService:
     @staticmethod
     def cancel_subscription_by_email_and_product_id(email, product_id):
         try:
-            user = User.query.filter_by(email=email).first()
-            if not user:
-                return None, "User not found"
-
             subscription = Subscription.query.filter(
-                Subscription.user_id == user.id,
+                Subscription.user_email == email,
                 Subscription.product_id == product_id,
                 Subscription.status.in_(["active", "pending_join"]),
             ).first()
             if not subscription:
                 return None, "Subscription not found"
 
-            tg_bot.remove_user(
-                subscription.telegram_group.telegram_group_id, user.telegram_user_id
-            )
+            if subscription.user_tg_id:
+                tg_bot.remove_user(
+                    subscription.telegram_group.telegram_group_id,
+                    subscription.user_tg_id,
+                )
 
-            user.telegram_user_id = None
+            subscription.user_tg_id = None
+            subscription.user_tg_username = None
 
             subscription.status = "cancelled"
 

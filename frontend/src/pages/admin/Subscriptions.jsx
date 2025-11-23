@@ -3,7 +3,6 @@ import {
   getSubscriptions,
   getProducts,
   cancelSubscription,
-  getUsers,
 } from "../../services/api";
 import { debounce } from "lodash";
 
@@ -61,12 +60,10 @@ function Subscriptions() {
         params.append("user_id", filter.userId);
       }
 
-      const [subscriptionsResponse, productsResponse, usersResponse] =
-        await Promise.all([
-          getSubscriptions(params),
-          getProducts(),
-          getUsers(),
-        ]);
+      const [subscriptionsResponse, productsResponse] = await Promise.all([
+        getSubscriptions(params),
+        getProducts(),
+      ]);
 
       setSubscriptions(subscriptionsResponse.data.items);
       setPagination({
@@ -76,7 +73,6 @@ function Subscriptions() {
         pages: subscriptionsResponse.data.pages,
       });
       setProducts(productsResponse.data);
-      setUsers(usersResponse.data);
       setLoading(false);
 
       // Restore scroll position after data is loaded
@@ -327,7 +323,7 @@ function Subscriptions() {
             </select>
           </div>
 
-          <div className="w-full md:w-auto">
+          {/* <div className="w-full md:w-auto">
             <label
               className="block text-gray-700 text-sm font-bold mb-2"
               htmlFor="userId"
@@ -348,7 +344,7 @@ function Subscriptions() {
                 </option>
               ))}
             </select>
-          </div>
+          </div> */}
 
           <div className="w-full md:w-auto">
             <label
@@ -440,7 +436,7 @@ function Subscriptions() {
                   <tr key={subscription.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        {subscription.user.email}
+                        {subscription.user_email}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -458,14 +454,14 @@ function Subscriptions() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {subscription.user.telegram_user_id ? (
+                      {subscription.user_tg_id ? (
                         <div>
                           <div className="text-sm text-gray-900">
-                            ID: {subscription.user.telegram_user_id}
+                            ID: {subscription.user_tg_id}
                           </div>
-                          {subscription.user.telegram_username && (
+                          {subscription.user_tg_username && (
                             <div className="text-sm text-gray-500">
-                              @{subscription.user.telegram_username}
+                              @{subscription.user_tg_username}
                             </div>
                           )}
                         </div>

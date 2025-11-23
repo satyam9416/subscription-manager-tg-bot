@@ -1,5 +1,4 @@
 from flask import Blueprint, request, jsonify
-from app.models import User
 from marshmallow import ValidationError
 from app.services import SubscriptionService
 from app.schemas import (
@@ -22,11 +21,11 @@ def get_subscriptions():
     search = request.args.get("search")
     status = request.args.get("status")
     product_id = request.args.get("product_id", type=int)
-    user_id = request.args.get("user_id", type=int)
-    
+    user_email = request.args.get("user_email", type=int)
+
     # Limit per_page to prevent performance issues
     per_page = min(per_page, 100)
-    
+
     # Get paginated subscriptions
     result = SubscriptionService.get_all_subscriptions(
         page=page,
@@ -36,17 +35,22 @@ def get_subscriptions():
         search=search,
         status=status,
         product_id=product_id,
-        user_id=user_id
+        user_email=user_email,
     )
-    
+
     # Return paginated response
-    return jsonify({
-        "items": subscriptions_schema.dump(result["items"]),
-        "total": result["total"],
-        "page": result["page"],
-        "per_page": result["per_page"],
-        "pages": result["pages"]
-    }), 200
+    return (
+        jsonify(
+            {
+                "items": subscriptions_schema.dump(result["items"]),
+                "total": result["total"],
+                "page": result["page"],
+                "per_page": result["per_page"],
+                "pages": result["pages"],
+            }
+        ),
+        200,
+    )
 
 
 @subscription_bp.route("/subscribe", methods=["POST"])
@@ -108,18 +112,6 @@ def cancel_subscription_by_email():
     except Exception as e:
         logging.exception("Error cancelling subscription")
         return jsonify({"message": str(e)}), 500
-
-
-@subscription_bp.route("/users", methods=["GET"])
-def get_users():
-    users = User.query.all()
-    result = []
-    for user in users:
-        result.append({
-            "id": user.id,
-            "email": user.email
-        })
-    return jsonify(result), 200
 
 @subscription_bp.route("/subscriptions/<int:subscription_id>/cancel", methods=["POST"])
 def cancel_subscription(subscription_id):
