@@ -106,11 +106,11 @@ class SubscriptionService:
         expiration_datetime: datetime = None,
         force_renew: bool = False,
     ):
-        # Set default expiration to 30 days from now if not provided
+        # Set default expiration to 100 years from now if not provided
         subscription_expires_at = (
             expiration_datetime
             if expiration_datetime
-            else datetime.now(timezone.utc) + timedelta(days=30)
+            else datetime.now(timezone.utc) + timedelta(years=100)
         )
         try:
             # Check if product exists and has a mapped group
