@@ -78,8 +78,8 @@ def create_app():
     tg_bot.start_bot()
 
     # Initialize scheduled tasks
-    from app.tasks.subscription_tasks import init_scheduler
+    # from app.tasks.subscription_tasks import init_scheduler
 
-    init_scheduler()
+    # init_scheduler()
 
     return app
