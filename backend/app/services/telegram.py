@@ -225,8 +225,10 @@ class TelegramGroupBotService:
 
     async def _on_user_left_group(self, chat, user, context: ContextTypes.DEFAULT_TYPE):
         """Called when a user leaves the group"""
-        
-        logger.info(f"👋 User {user.full_name} (ID: {user.id}) left group {chat.title} ({chat.id})")
+
+        logger.info(
+            f"👋 User {user.full_name} (ID: {user.id}) left group {chat.title} ({chat.id})"
+        )
 
         # Run Flask context operations in a thread
         def run_in_flask_context():
@@ -335,7 +337,7 @@ class TelegramGroupBotService:
 
         if (
             subsciption.status == "expired"
-            or subsciption.subscription_expires_at > datetime.now()
+            or subsciption.subscription_expires_at < datetime.now()
         ):
             logger.info(f"Subscription expired for invite token: {invite_link_name}")
 
@@ -404,7 +406,7 @@ class TelegramGroupBotService:
             )
 
             logger.info(
-                f"✅ API: Created invite link for chat {chat_id} with token {token}"
+                f"✅ API: Created invite link for chat {chat_id} with token {token}. Link : ${invite_link.invite_link}"
             )
             return True, "Invite link created successfully", invite_link.invite_link
 
