@@ -364,19 +364,37 @@ class TelegramGroupBotService:
 
     # Helper method to run async function in bot's event loop
     def _run_async_in_bot_loop(self, coro):
-        """Run an async coroutine in the bot's event loop"""
-        if self.event_loop and self.event_loop.is_running():
-            # If event loop is running, schedule the coroutine
-            future = asyncio.run_coroutine_threadsafe(coro, self.event_loop)
-            return future.result(timeout=60)  # 30 second timeout
-        else:
-            # If no event loop is running, create a new one
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                return loop.run_until_complete(coro)
-            finally:
-                loop.close()
+        """Run an async coroutine in the bot's event loop.
+
+        Always uses run_coroutine_threadsafe to avoid conflicts with
+        eventlet's monkey-patched event loop.
+        """
+        import time
+
+        # Wait for the bot's event loop to become available (up to 10 seconds)
+        max_wait = 10
+        waited = 0
+        while (
+            not self.event_loop or not self.event_loop.is_running()
+        ) and waited < max_wait:
+            logger.warning(
+                f"Bot event loop not ready yet, waiting... ({waited}/{max_wait}s)"
+            )
+            time.sleep(1)
+            waited += 1
+
+        if not self.event_loop or not self.event_loop.is_running():
+            # Close the unawaited coroutine to suppress RuntimeWarning
+            coro.close()
+            raise RuntimeError(
+                "Telegram bot event loop is not available. "
+                "The bot may not have started yet."
+            )
+
+        # Always use run_coroutine_threadsafe — safe from any thread,
+        # and does not conflict with eventlet's event loop.
+        future = asyncio.run_coroutine_threadsafe(coro, self.event_loop)
+        return future.result(timeout=60)
 
     # API METHODS
 
@@ -485,24 +503,82 @@ class TelegramGroupBotService:
     # BOT LIFECYCLE MANAGEMENT
 
     def start_bot(self):
-        """Start the bot in a separate thread"""
+        """Start the bot in a separate thread with auto-restart on crash."""
+
+        async def _run_bot_async():
+            """Run bot lifecycle using explicit init/start/polling."""
+            await self.application.initialize()
+            await self.application.start()
+            await self.application.updater.start_polling(
+                allowed_updates=Update.ALL_TYPES
+            )
+            logger.info("✅ Bot polling started")
+
+            # Keep running until stopped
+            try:
+                while self.running:
+                    await asyncio.sleep(1)
+            finally:
+                logger.info("🛑 Stopping bot polling...")
+                try:
+                    await self.application.updater.stop()
+                    await self.application.stop()
+                    await self.application.shutdown()
+                except Exception as cleanup_err:
+                    logger.warning(f"Error during bot cleanup: {cleanup_err}")
 
         def run_bot():
-            logger.info("🚀 Starting Telegram Bot Service...")
-            self.running = True
+            import time
 
-            # Create and set the event loop for the bot thread
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            self.event_loop = loop
+            max_retries = 5
+            retry_count = 0
+            base_delay = 5  # seconds
 
-            try:
-                self.application.run_polling(allowed_updates=Update.ALL_TYPES)
-            except Exception as e:
-                logger.error(f"Error running bot: {e}")
-            finally:
-                self.running = False
-                self.event_loop = None
+            while retry_count <= max_retries:
+                logger.info(
+                    f"🚀 Starting Telegram Bot Service... "
+                    f"(attempt {retry_count + 1}/{max_retries + 1})"
+                )
+                self.running = True
+
+                # Rebuild Application on restart (can't re-initialize the same one)
+                if retry_count > 0:
+                    self.application = (
+                        Application.builder().token(self.bot_token).build()
+                    )
+                    self.bot = Bot(token=self.bot_token)
+                    self.setup_handlers()
+
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                self.event_loop = loop
+
+                try:
+                    loop.run_until_complete(_run_bot_async())
+                    # If we exit cleanly (self.running was set to False), don't restart
+                    break
+                except Exception as e:
+                    logger.exception(f"❌ Bot crashed (attempt {retry_count + 1}): {e}")
+                    retry_count += 1
+                    if retry_count <= max_retries:
+                        delay = base_delay * (
+                            2 ** (retry_count - 1)
+                        )  # Exponential backoff
+                        logger.info(f"⏳ Restarting bot in {delay}s...")
+                        time.sleep(delay)
+                finally:
+                    self.event_loop = None
+                    try:
+                        loop.close()
+                    except Exception:
+                        pass
+
+            self.running = False
+            if retry_count > max_retries:
+                logger.critical(
+                    "🔴 Bot failed to start after max retries. "
+                    "Manual intervention required."
+                )
 
         if not self.running:
             self.bot_thread = threading.Thread(target=run_bot, daemon=True)
@@ -512,14 +588,8 @@ class TelegramGroupBotService:
     def stop_bot(self):
         """Stop the bot"""
         if self.running:
+            logger.info("🛑 Stopping bot service...")
             self.running = False
-            if self.application.updater:
-                self.application.updater.stop()
-            logger.info("🛑 Bot service stopped")
-
-        if self.event_loop.is_running():
-            self.event_loop.call_soon_threadsafe(self.event_loop.stop)
-            logger.info("🛑 Bot event loop stopped")
 
 
 import os

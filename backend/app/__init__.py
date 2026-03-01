@@ -82,4 +82,30 @@ def create_app():
 
     # init_scheduler()
 
+    # ── Global error handlers ──
+    # Catch ALL unhandled exceptions so they never propagate to gunicorn
+    # and kill the worker process.
+    import logging
+    import traceback
+
+    @app.errorhandler(Exception)
+    def handle_exception(e):
+        """Catch-all handler for any unhandled exception."""
+        logging.exception(f"Unhandled exception: {e}")
+        return {"message": "Internal server error", "error": str(e)}, 500
+
+    @app.errorhandler(RuntimeError)
+    def handle_runtime_error(e):
+        """Explicitly catch RuntimeErrors (e.g. event-loop conflicts)."""
+        logging.exception(f"RuntimeError: {e}")
+        return {"message": "Internal server error", "error": str(e)}, 500
+
+    @app.errorhandler(404)
+    def handle_not_found(e):
+        return {"message": "Resource not found"}, 404
+
+    @app.errorhandler(405)
+    def handle_method_not_allowed(e):
+        return {"message": "Method not allowed"}, 405
+
     return app
